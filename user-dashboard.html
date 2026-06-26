@@ -38,8 +38,8 @@
         <aside class="sidebar">
             <div class="profile-section">
                 <div class="avatar">👤</div>
-                <h3>Tooba Nadeem</h3>
-                <p>tooba@example.com</p>
+                <h3 id="profile-name">Loading...</h3>
+                <p id="profile-email"></p>
             </div>
             <nav class="sidebar-menu">
                 <a href="user-dashboard.html" class="active">🏠 Dashboard</a>
@@ -58,17 +58,17 @@
             <div class="stats-row">
                 <div class="stat-card">
                     <div class="stat-icon">📝</div>
-                    <div class="stat-number">3</div>
+                    <div class="stat-number" id="stat-applications"></div>
                     <p>Applications Submitted</p>
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon">✅</div>
-                    <div class="stat-number">1</div>
+                    <div class="stat-number" id="stat-approved"></div>
                     <p>Adoption Approved</p>
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon">🔔</div>
-                    <div class="stat-number">2</div>
+                    <div class="stat-number" id="stat-notifications"></div>
                     <p>New Notifications</p>
                 </div>
             </div>
@@ -89,52 +89,19 @@
                             <th>Action</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td>🐶 Buddy</td>
-                            <td>Golden Retriever</td>
-                            <td>10 Jan 2025</td>
-                            <td><span class="badge badge-available">Approved</span></td>
-                            <td><a href="pet-details.html" class="btn btn-secondary btn-small">View</a></td>
-                        </tr>
-                        <tr>
-                            <td>🐱 Luna</td>
-                            <td>Persian Cat</td>
-                            <td>18 Jan 2025</td>
-                            <td><span class="badge badge-pending">Pending</span></td>
-                            <td><a href="pet-details.html" class="btn btn-secondary btn-small">View</a></td>
-                        </tr>
-                        <tr>
-                            <td>🐰 Coco</td>
-                            <td>Holland Lop</td>
-                            <td>22 Jan 2025</td>
-                            <td><span class="badge badge-rejected">Rejected</span></td>
-                            <td><a href="pet-details.html" class="btn btn-secondary btn-small">View</a></td>
-                        </tr>
+                    <tbody id="applications-body">  
                     </tbody>
                 </table>
             </div>
 
             <!-- Notifications preview -->
+
             <div class="section-box">
                 <div class="section-box-header">
                     <h3>🔔 Recent Notifications</h3>
                     <a href="notifications.html" class="btn btn-secondary btn-small">View All</a>
                 </div>
-                <div class="notification-item">
-                    <div class="notif-icon">✅</div>
-                    <div class="notif-text">
-                        <p>Your adoption application for <strong>Buddy</strong> has been <strong>approved!</strong></p>
-                        <span class="notif-time">2 hours ago</span>
-                    </div>
-                </div>
-                <div class="notification-item">
-                    <div class="notif-icon">🐾</div>
-                    <div class="notif-text">
-                        <p>New pets matching your preference have been added to the shelter.</p>
-                        <span class="notif-time">Yesterday</span>
-                    </div>
-                </div>
+                <div id="notifications-list"></div>
             </div>
 
         </main>
@@ -145,13 +112,111 @@
         <p>🐾 FurEver Home &copy; 2025 | Made with love for every furry soul 💕</p>
     </footer>
 <script>
-    function logout(){
-        fetch("api/logout.php")
-        .then(res => res.text())
-        .then(() => {
-            window.location = "login.html";
+function logout() {
+    fetch("api/logout.php")
+        .then(() => window.location = "login.html");
+}
+
+function timeAgo(dateStr) {
+    const diff = Math.floor((new Date() - new Date(dateStr)) / 1000);
+    if (diff < 3600)  return Math.floor(diff / 60) + " minutes ago";
+    if (diff < 86400) return Math.floor(diff / 3600) + " hours ago";
+    return Math.floor(diff / 86400) + " days ago";
+}
+
+function loadUserProfile() 
+{
+    fetch('api/get_user.php')
+    .then(res => res.json())
+    .then(data => {
+        if(data.status === 'success'){
+            document.getElementById('profile-name').textContent  = data.user.fname + ' ' + data.user.lname;
+            document.getElementById('profile-email').textContent = data.user.email;
+        }
+    });
+}   
+
+function loadStats() {
+    fetch("api/user_dashboard.php")
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById("stat-applications").textContent  = data.applications;
+            document.getElementById("stat-approved").textContent      = data.approved;
+            //document.getElementById("stat-notifications").textContent = data.notifications;
         });
-    }
+}
+
+function loadApplications() {
+    fetch("api/pet_applications.php")
+        .then(r => r.json())
+        .then(apps => {
+            const tbody = document.getElementById("applications-body");
+            if (apps.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#aaa;">No applications yet</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = apps.map(app => {
+                const badgeClass = app.status === "approved" ? "badge-available"
+                                 : app.status === "rejected" ? "badge-rejected"
+                                 : "badge-pending";
+                const date = new Date(app.created_at).toLocaleDateString("en-GB", {
+                    day: "numeric", month: "short", year: "numeric"
+                });
+                return `
+                    <tr>
+                        <td>🐾 ${app.pet_name}</td>
+                        <td>${app.breed}</td>
+                        <td>${date}</td>
+                        <td><span class="badge ${badgeClass}">${app.status}</span></td>
+                        <td><a href="pet-details.html?id=${app.pet_id}" class="btn btn-secondary btn-small">View</a></td>
+                    </tr>`;
+            }).join("");
+        });
+}
+
+function loadNotifications() {
+    fetch("api/get_notifications.php")
+    .then(r => r.json())
+    .then(data => {
+        const list = document.getElementById("notifications-list");
+
+        if (data.status !== 'success' || data.notifications.length === 0) {
+            list.innerHTML = `<p style="color:#aaa; padding:16px;">No notifications yet</p>`;
+            return;
+        }
+
+        // Show only latest 3
+        const latest = data.notifications.slice(0, 3);
+
+        const typeEmoji = {
+            success : '✅',
+            info    : '🐾',
+            warning : '📝',
+            error   : '❌'
+        };
+
+        list.innerHTML = latest.map(n => `
+            <div class="notification-item">
+                <div class="notif-icon">${typeEmoji[n.type] || '🔔'}</div>
+                <div class="notif-text">
+                    <p>${n.message}</p>
+                    <span class="notif-time">${timeAgo(n.created_at)}</span>
+                </div>
+            </div>
+        `).join("");
+
+        // Update notification count in stats
+        document.getElementById("stat-notifications").textContent = data.unread_count;
+    })
+    .catch(err => console.error(err));
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    loadUserProfile();
+    loadStats();
+    loadApplications();
+    loadNotifications();
+});
 </script>
 </body>
 </html>

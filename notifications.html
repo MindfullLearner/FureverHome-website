@@ -40,71 +40,17 @@
 
         <!-- Header row -->
         <div class="notif-header">
-            <p style="font-size: 0.88rem; color: var(--text-light);">You have <strong style="color: var(--pink-dark);">3 unread</strong> notifications</p>
-            <button class="btn btn-secondary btn-small">Mark All as Read</button>
+            <p id="unread-count" style="font-size:0.88rem; color:var(--text-light);">
+                Loading...
+            </p>
+            <button class="btn btn-secondary btn-small" onclick="markAllRead()">
+                Mark All as Read
+            </button>
         </div>
 
-        <!-- New Notifications -->
-        <div class="notif-section-label">New</div>
-
-        <div class="notif-card unread type-success">
-            <div class="notif-emoji">✅</div>
-            <div class="notif-body">
-                <h4>Adoption Approved!</h4>
-                <p>Great news! Your adoption application for <strong>Buddy</strong> (Golden Retriever) has been approved by Happy Paws Shelter.</p>
-                <div class="notif-time">Today · 10:30 AM</div>
-            </div>
-            <div class="unread-dot"></div>
-        </div>
-
-        <div class="notif-card unread type-info">
-            <div class="notif-emoji">🐾</div>
-            <div class="notif-body">
-                <h4>New Pets Available!</h4>
-                <p>5 new pets matching your preferences (cats & small animals) have been added to shelters near you.</p>
-                <div class="notif-time">Today · 9:15 AM</div>
-            </div>
-            <div class="unread-dot"></div>
-        </div>
-
-        <div class="notif-card unread type-warning">
-            <div class="notif-emoji">📝</div>
-            <div class="notif-body">
-                <h4>Application Under Review</h4>
-                <p>Your application for <strong>Luna</strong> (Persian Cat) is currently being reviewed. You'll hear back within 2–3 business days.</p>
-                <div class="notif-time">Yesterday · 4:45 PM</div>
-            </div>
-            <div class="unread-dot"></div>
-        </div>
-
-        <!-- Older Notifications -->
-        <div class="notif-section-label">Earlier</div>
-
-        <div class="notif-card type-info">
-            <div class="notif-emoji">🏠</div>
-            <div class="notif-body">
-                <h4>Welcome to FurEver Home!</h4>
-                <p>Your account has been created successfully. Start browsing pets and find your perfect companion.</p>
-                <div class="notif-time">Jan 8, 2025</div>
-            </div>
-        </div>
-
-        <div class="notif-card">
-            <div class="notif-emoji">❌</div>
-            <div class="notif-body">
-                <h4>Application Not Approved</h4>
-                <p>Unfortunately, your application for <strong>Coco</strong> (Holland Lop) was not approved this time. You may apply for another pet.</p>
-                <div class="notif-time">Jan 7, 2025</div>
-            </div>
-        </div>
-
-        <div class="notif-card type-info">
-            <div class="notif-emoji">💳</div>
-            <div class="notif-body">
-                <h4>Payment Received</h4>
-                <p>Your adoption fee payment of Rs. 2,000 for the application has been received successfully.</p>
-                <div class="notif-time">Jan 5, 2025</div>
-            </div>
+        <!-- Dynamic notifications loaded here -->
+        <div id="notif-list">
+            <p style="text-align:center; padding:30px;">Loading notifications... ⏳</p>
         </div>
 
     </div>
@@ -113,14 +59,141 @@
     <footer class="footer">
         <p>🐾 FurEver Home &copy; 2025 | Made with love for every furry soul 💕</p>
     </footer>
+
 <script>
+    // =====================
+    // LOGOUT
+    // =====================
     function logout(){
         fetch("api/logout.php")
         .then(res => res.text())
-        .then(() => {
-            window.location = "login.html";
+        .then(() => { window.location = "login.html"; });
+    }
+
+    // =====================
+    // LOAD NOTIFICATIONS
+    // =====================
+    function loadNotifications() {
+        fetch('api/get_notifications.php')
+        .then(res => res.json())
+        .then(data => {
+            const list        = document.getElementById('notif-list');
+            const unreadLabel = document.getElementById('unread-count');
+
+            if (data.status !== 'success') {
+                list.innerHTML = `<p style="text-align:center; padding:30px; color:red;">Failed to load notifications.</p>`;
+                return;
+            }
+
+            // Update unread count
+            unreadLabel.innerHTML = `You have <strong style="color:var(--pink-dark);">${data.unread_count} unread</strong> notifications`;
+
+            // No notifications
+            if (data.notifications.length === 0) {
+                list.innerHTML = `<p style="text-align:center; padding:30px;">No notifications yet 🐾</p>`;
+                return;
+            }
+
+            // Emoji per type
+            const typeEmoji = {
+                success : '✅',
+                info    : '🐾',
+                warning : '📝',
+                error   : '❌'
+            };
+
+            // Separate new and earlier
+            let newHTML      = '';
+            let earlierHTML  = '';
+            let hasNew       = false;
+            let hasEarlier   = false;
+
+            const now     = new Date();
+            const today   = now.toDateString();
+            const yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+
+            data.notifications.forEach(n => {
+                const notifDate   = new Date(n.created_at);
+                const isToday     = notifDate.toDateString() === today;
+                const isYesterday = notifDate.toDateString() === yesterday.toDateString();
+
+                // Format time
+                let timeLabel = '';
+                if (isToday) {
+                    timeLabel = 'Today · ' + notifDate.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                } else if (isYesterday) {
+                    timeLabel = 'Yesterday · ' + notifDate.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                } else {
+                    timeLabel = notifDate.toLocaleDateString([], {day:'numeric', month:'short', year:'numeric'});
+                }
+
+                const unreadClass = n.is_read == 0 ? 'unread' : '';
+                const dot         = n.is_read == 0 ? '<div class="unread-dot"></div>' : '';
+                const emoji       = typeEmoji[n.type] || '🔔';
+
+                const card = `
+                    <div class="notif-card ${unreadClass} type-${n.type}">
+                        <div class="notif-emoji">${emoji}</div>
+                        <div class="notif-body">
+                            <h4>${n.title}</h4>
+                            <p>${n.message}</p>
+                            <div class="notif-time">${timeLabel}</div>
+                        </div>
+                        ${dot}
+                    </div>
+                `;
+
+                // Today & yesterday = New, older = Earlier
+                if (isToday || isYesterday) {
+                    newHTML += card;
+                    hasNew   = true;
+                } else {
+                    earlierHTML += card;
+                    hasEarlier   = true;
+                }
+            });
+
+            // Build final HTML
+            let finalHTML = '';
+
+            if (hasNew) {
+                finalHTML += `<div class="notif-section-label">New</div>` + newHTML;
+            }
+
+            if (hasEarlier) {
+                finalHTML += `<div class="notif-section-label">Earlier</div>` + earlierHTML;
+            }
+
+            list.innerHTML = finalHTML;
+        })
+        .catch(err => {
+            document.getElementById('notif-list').innerHTML =
+                `<p style="text-align:center; padding:30px; color:red;">Something went wrong.</p>`;
+            console.error(err);
         });
     }
+
+    // =====================
+    // MARK ALL AS READ
+    // =====================
+    function markAllRead() {
+        fetch('api/mark_read.php', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                loadNotifications(); // refresh list
+            }
+        })
+        .catch(err => console.error(err));
+    }
+
+    // =====================
+    // INIT
+    // =====================
+    document.addEventListener('DOMContentLoaded', function() {
+        loadNotifications();
+    });
 </script>
 </body>
 </html>

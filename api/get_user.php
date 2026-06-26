@@ -1,6 +1,7 @@
 <?php
-$required_role = 'shelter-staff';
-include "check_auth_api.php";
+session_start(); 
+#$required_role = 'shelter-staff';
+// include "check_auth_api.php";
 include "db.php";
 
 $user_id = $_SESSION['user_id'];

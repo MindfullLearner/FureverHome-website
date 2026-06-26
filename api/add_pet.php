@@ -2,6 +2,9 @@
 $required_role = 'shelter-staff'; // set role before including
 include "check_auth_api.php";     // handles session + auth
 include "db.php";
+// Add after successful INSERT
+include "notify.php";
+
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['status' => 'error', 'message' => 'Method not allowed']);
@@ -42,7 +45,7 @@ if (isset($_FILES['pet_image']) && $_FILES['pet_image']['error'] === UPLOAD_ERR_
 
 // Insert
 $sql = "INSERT INTO pets (name, type, breed, age, gender, health_status, description, image_url, availability, created_by)
-        VALUES ('$pet_name', '$species', '$breed', '$age', '$gender', '$health', '$description', '$image_path', 'available', '$staff_id')";
+        VALUES ('$pet_name', '$species', '$breed', '$age', '$gender', '$health', '$description', '$image_path', 'Available', '$staff_id')";
 
 if ($conn->query($sql)) {
     $new_id = $conn->insert_id;
@@ -58,6 +61,13 @@ if ($conn->query($sql)) {
             'availability' => 'available'
         ]
     ]);
+    
+    $admin = $conn->query("SELECT id FROM users WHERE role='admin' LIMIT 1")->fetch_assoc();
+    if ($admin) {
+        createNotification($conn, $admin['id'], 'admin', 'info',
+            'New Pet Added',
+            "A new pet '$pet_name' has been added to the shelter.");
+    }
 } else {
     echo json_encode(['status' => 'error', 'message' => 'Failed: ' . $conn->error]);
 }
