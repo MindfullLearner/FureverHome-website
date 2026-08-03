@@ -106,7 +106,7 @@ furever-home/
 ### Backend
 - **PHP** — REST-style API endpoints
 - **MySQL** — Relational database via phpMyAdmin
-- **XAMPP** — Local development server (Apache + MySQL)
+- **MAMPP** — Local development server (Apache + MySQL)
 
 ### Key Features
 - Role-based authentication (Adopter / Shelter Staff / Admin)
@@ -131,7 +131,7 @@ furever-home/
 
 1. Install **XAMPP** and start **Apache** and **MySQL**
 2. Clone or copy project to:
-    C:/xampp/htdocs/furever_home/
+    C:/mamp/htdocs/furever_home/
 3. Import database:
    - Open **phpMyAdmin** → Create DB `furever_home`
    - Import `furever_home.sql`
