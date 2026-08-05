@@ -122,7 +122,6 @@ furever-home/
 
 | Role | Email | Password |
 |---|---|---|
-| Admin | admin@gmail.com | 123 |
 | Shelter Staff | minu@gmail.com | minu123 |
 | Adopter | nayab@gmail.com | nayab123 |
 
