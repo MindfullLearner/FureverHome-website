@@ -14,8 +14,8 @@
         <a href="index.html" class="logo">🐾 FurEver <span>Home</span></a>
         <ul class="nav-links">
             <li><a href="browse-pets.html">← Back to Pets</a></li>
-            <li><a href="user-dashboard.html">Dashboard</a></li>
-            <li><a href="login.html" class="btn btn-secondary btn-small">Login</a></li>
+            <li id="auth-buttons"></li>
+            
         </ul>
     </nav>
 
@@ -114,6 +114,35 @@
 
 </body>
 <script>
+function checkAuth() {
+        fetch("api/check_auth.php")
+        .then(res => res.text())
+        .then(res => {
+            const authDiv = document.getElementById("auth-buttons");
+            if (res === "authorized") {
+                // Show logout button
+                authDiv.innerHTML = `
+                	<a href="user-dashboard.html">Dashboard</a>
+                    <a href="#" onclick="logout()" class="btn btn-secondary btn-small">Logout</a>
+                `;
+            } else {
+                // Show login/register buttons
+                authDiv.innerHTML = `
+                	<a href="register.html" class="btn btn-primary btn-small">Register</a>
+                    <a href="login.html" class="btn btn-secondary btn-small">Login</a>
+                `;
+            }
+        });
+    }
+function logout() {
+    fetch("api/logout.php")
+    .then(() => window.location = "login.html");
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            checkAuth();
+            loadPets(1, {});
+        });
 document.addEventListener("DOMContentLoaded", function () {
 
     // Get pet id from URL
@@ -124,7 +153,10 @@ document.addEventListener("DOMContentLoaded", function () {
         alert("Pet ID missing");
         return;
     }
-
+    
+    
+    
+    
     // AJAX request
     fetch("api/get_pet_details.php?id=" + petId)
         .then(response => response.json())
@@ -146,7 +178,7 @@ document.addEventListener("DOMContentLoaded", function () {
             document.getElementById("petBreedText").textContent = data.breed;
             const img = document.getElementById("petImage");
 
-            img.src = "/furever-home-with-sessions/" + data.image_url;
+            img.src = "/furever_home_with_sessions/" + data.image_url;
 
             // img.onerror = function () {
             //     console.log("Image failed:", img.src);
@@ -162,5 +194,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
 });
+    
 </script>
 </html>
