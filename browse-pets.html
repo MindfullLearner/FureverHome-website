@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,6 +8,7 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/browse.css">
 </head>
+
 <body>
 
     <!-- Navbar -->
@@ -14,9 +16,8 @@
         <a href="index.html" class="logo">🐾 FurEver <span>Home</span></a>
         <ul class="nav-links">
             <li><a href="index.html">Home</a></li>
-            <li><a href="user-dashboard.html">Dashboard</a></li>
-            <li><a href="login.html" class="btn btn-secondary btn-small">Login</a></li>
-            <li><a href="register.html" class="btn btn-primary btn-small">Register</a></li>
+            <li id="auth-buttons"></li>
+            <li id="auth-buttons"></li>
         </ul>
     </nav>
 
@@ -190,7 +191,36 @@
         };
         loadPets(1, filters); // always reset to page 1 on new filter
     }
+    
+    function checkAuth() {
+        fetch("api/check_auth.php")
+        .then(res => res.text())
+        .then(res => {
+            const authDiv = document.getElementById("auth-buttons");
+            if (res === "authorized") {
+                // Show logout button
+                authDiv.innerHTML = `
+                	<a href="user-dashboard.html">Dashboard</a>
+                    <a href="#" onclick="logout()" class="btn btn-secondary btn-small">Logout</a>
+                `;
+            } else {
+                // Show login/register buttons
+                authDiv.innerHTML = `
+                    <a href="login.html" class="btn btn-secondary btn-small">Login</a>
+                    <a href="register.html" class="btn btn-primary btn-small">Register</a>
+                `;
+            }
+        });
+    }
+    function logout() {
+    fetch("api/logout.php")
+    .then(() => window.location = "login.html");
+        }
 
-    document.addEventListener("DOMContentLoaded", () => loadPets(1, {}));
+        document.addEventListener("DOMContentLoaded", () => {
+            checkAuth();
+            loadPets(1, {});
+        });
+    
 </script>
 </html>
