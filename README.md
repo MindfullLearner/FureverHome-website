@@ -128,3 +128,4 @@ furever-home/
 ---
 
 *FurEver Home © 2025 — Made with 💕 for every furry soul*
+*Stay connected for updates!*
